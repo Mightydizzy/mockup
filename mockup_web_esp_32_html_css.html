@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ESP32 | App (Mockup Mobile)</title>
+  <style>
+    :root{
+      --bg:#0b1220;          /* slate-950 */
+      --panel:#0f172a;       /* slate-900 */
+      --card:#111827;        /* gray-900 */
+      --muted:#94a3b8;       /* slate-400 */
+      --text:#e5e7eb;        /* gray-200 */
+      --accent:#22d3ee;      /* cyan-400 */
+      --ok:#22c55e;          /* green-500 */
+      --warn:#f59e0b;        /* amber-500 */
+      --danger:#ef4444;      /* red-500 */
+      --border:#334155;      /* slate-700 */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    a{color:inherit;text-decoration:none}
+    .hide{display:none !important}
+
+    /* ====== MOBILE APP FRAME (100% teléfono) ====== */
+    .app{min-height:100dvh;display:grid;grid-template-rows:auto 1fr auto;background:linear-gradient(180deg,#0b1220,#0f172a)}
+
+    /* Topbar */
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+    .brand{display:flex;align-items:center;gap:.6rem;font-weight:800}
+    .brand i{width:10px;height:10px;border-radius:3px;background:var(--accent);display:inline-block;box-shadow:0 0 18px rgba(34,211,238,.6)}
+    .top-actions{display:flex;gap:8px}
+    .btn{display:inline-flex;align-items:center;gap:.35rem;padding:.55rem .8rem;border:1px solid var(--border);border-radius:10px;background:linear-gradient(180deg,#0f172a,#0c1220);transition:.2s}
+    .btn.primary{background:linear-gradient(180deg,#0891b2,#06b6d4);color:#042026;border-color:transparent}
+
+    /* Bottom nav (tabs) */
+    .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px;background:var(--panel);border-top:1px solid var(--border);position:sticky;bottom:0}
+    .tab{display:grid;place-items:center;padding:8px;border:1px solid transparent;border-radius:10px;color:#cbd5e1;font-size:.8rem}
+    .tab .ico{font-size:1.05rem}
+    .tab.active{background:#0b1220;border-color:var(--border);color:#e6fbff}
+
+    /* Screens */
+    .screen{display:none;padding:12px}
+    /* router with :target */
+    #inicio:target ~ .app .screen--inicio{display:block}
+    #alertas:target ~ .app .screen--alertas{display:block}
+    #config:target ~ .app .screen--config{display:block}
+    #usuario:target ~ .app .screen--usuario{display:block}
+    #info:target ~ .app .screen--info{display:block}
+    /* default */
+    :not(:target) ~ .app .screen--inicio{display:block}
+
+    /* Cards & panels */
+    .grid{display:grid;gap:10px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .kpi h3{margin:0 0 6px;color:var(--muted);font-size:.8rem}
+    .kpi .value{font-size:1.6rem;font-weight:800}
+    .statusline{display:flex;align-items:center;gap:8px;color:#cbd5e1}
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--ok);box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+
+    .panel header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+    .badge{display:inline-block;padding:.25rem .55rem;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:.75rem}
+
+    input[type="text"],input[type="password"],input[type="email"],select{width:100%;padding:.8rem .9rem;background:#0b1220;border:1px solid var(--border);border-radius:12px;color:var(--text)}
+    label{font-size:.8rem;color:var(--muted)}
+    .field{display:grid;gap:6px}
+    form.grid{grid-template-columns:1fr;gap:10px}
+
+    table{width:100%;border-collapse:collapse}
+    thead th{font-size:.75rem;text-align:left;color:var(--muted);background:#111827;border-bottom:1px solid var(--border);padding:8px 10px;position:sticky;top:0}
+    tbody td{padding:10px;border-bottom:1px solid var(--border)}
+    tr:hover td{background:#0b1220}
+    .tag{display:inline-block;padding:.18rem .45rem;border-radius:8px;font-size:.7rem}
+    .tag.ok{background:rgba(34,197,94,.1);color:#86efac}
+    .tag.warn{background:rgba(245,158,11,.1);color:#facc15}
+    .tag.danger{background:rgba(239,68,68,.12);color:#fca5a5}
+
+    /* Larger than phone */
+    @media (min-width: 720px){
+      .app{max-width:860px;margin:0 auto;border-left:1px solid var(--border);border-right:1px solid var(--border);border-radius:0}
+      .kpis{grid-template-columns:repeat(4,1fr)}
+      .screen{padding:16px}
+    }
+  </style>
+</head>
+<body>
+  <!-- RUTAS: #inicio, #alertas, #config, #usuario, #info -->
+  <a id="inicio"></a>
+  <a id="alertas"></a>
+  <a id="config"></a>
+  <a id="usuario"></a>
+  <a id="info"></a>
+
+  <section class="app">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="brand"><i></i> ESP32 App</div>
+      <div class="top-actions">
+        <span class="badge">Mockup</span>
+        <a class="btn" href="#info">ℹ️</a>
+      </div>
+    </header>
+
+    <!-- ===== INICIO ===== -->
+    <main class="screen screen--inicio">
+      <div class="grid kpis">
+        <article class="card kpi">
+          <h3>Movimientos hoy</h3>
+          <div class="value">7</div>
+        </article>
+        <article class="card kpi">
+          <h3>Última alerta</h3>
+          <div class="value">12:41</div>
+        </article>
+        <article class="card kpi">
+          <h3>Sensores activos</h3>
+          <div class="value">3</div>
+        </article>
+        <article class="card kpi">
+          <h3>Estado</h3>
+          <div class="value" style="color:var(--ok)">Normal</div>
+        </article>
+      </div>
+
+      <section class="card panel" style="margin-top:10px">
+        <header>
+          <strong>Estado del dispositivo</strong>
+          <div class="statusline"><span class="dot"></span> Conectado • Zona: Patio trasero</div>
+        </header>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div>IP: <strong>192.168.1.72</strong></div>
+          <div>Uptime: <strong>03:14:22</strong></div>
+          <div>Firmware: <strong>v0.1.0</strong></div>
+          <div>Últ. envío: <strong>12:41:03</strong></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ===== ALERTAS ===== -->
+    <section class="screen screen--alertas">
+      <div class="card panel">
+        <header>
+          <strong>Alertas</strong>
+          <div class="top-actions">
+            <a class="btn" href="#">Exportar</a>
+          </div>
+        </header>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <input type="text" placeholder="Buscar…" />
+          <select>
+            <option>Todos</option>
+            <option>Movimiento</option>
+            <option>Puerta</option>
+            <option>Temperatura</option>
+          </select>
+        </div>
+        <div style="overflow:auto;margin-top:10px;max-height:60dvh">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Lugar</th>
+                <th>Sensor</th>
+                <th>Nivel</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>10-11-2025</td><td>12:41:03</td><td>Patio</td><td>PIR 01</td><td><span class="tag warn">Advertencia</span></td>
+              </tr>
+              <tr>
+                <td>10-11-2025</td><td>12:12:55</td><td>Entrada</td><td>Puerta</td><td><span class="tag ok">Info</span></td>
+              </tr>
+              <tr>
+                <td>10-11-2025</td><td>11:03:19</td><td>Living</td><td>PIR 02</td><td><span class="tag warn">Advertencia</span></td>
+              </tr>
+              <tr>
+                <td>10-11-2025</td><td>09:44:02</td><td>Patio</td><td>Temp</td><td><span class="tag danger">Crítico</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CONFIGURAR DISPOSITIVO ===== -->
+    <section class="screen screen--config">
+      <div class="card panel">
+        <header>
+          <strong>Configurar dispositivo</strong>
+          <span class="badge">Visual</span>
+        </header>
+        <form class="grid">
+          <div class="field">
+            <label>Nombre del dispositivo</label>
+            <input type="text" placeholder="ESP32 Patio" />
+          </div>
+          <div class="field">
+            <label>Zona/Lugar</label>
+            <input type="text" placeholder="Patio trasero" />
+          </div>
+          <div class="field">
+            <label>Sensor superior</label>
+            <select>
+              <option>PIR 01</option>
+              <option>PIR 02</option>
+              <option>PIR 03</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Sensor inferior</label>
+            <select>
+              <option>PIR 02</option>
+              <option>PIR 01</option>
+              <option>PIR 03</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Puerta/Entrada</label>
+            <select>
+              <option>Puerta magnética</option>
+              <option>Reed switch</option>
+              <option>— Ninguno —</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>URL del endpoint (GET/POST)</label>
+            <input type="text" placeholder="http://192.168.1.72/alert" />
+          </div>
+          <div class="grid" style="grid-template-columns:1fr 1fr">
+            <a class="btn" href="#">Probar</a>
+            <a class="btn primary" href="#">Guardar</a>
+          </div>
+        </form>
+
+        <div class="card" style="margin-top:12px">
+          <strong>Mapeo rápido</strong>
+          <p class="" style="margin:.4rem 0;color:var(--muted)">Arrastra (conceptualmente) para priorizar; solo visual.</p>
+          <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="card" style="text-align:center">PIR 01<br/><small class="muted">Superior</small></div>
+            <div class="card" style="text-align:center">PIR 02<br/><small class="muted">Inferior</small></div>
+            <div class="card" style="text-align:center">Puerta<br/><small class="muted">Entrada</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CREAR USUARIO ===== -->
+    <section class="screen screen--usuario">
+      <div class="card panel">
+        <header>
+          <strong>Crear usuario</strong>
+          <span class="badge">admin / 12345 (demo)</span>
+        </header>
+        <form class="grid">
+          <div class="field">
+            <label>Nombre</label>
+            <input type="text" placeholder="María Gómez" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" placeholder="maria@ejemplo.com" />
+          </div>
+          <div class="field">
+            <label>Usuario</label>
+            <input type="text" placeholder="mgomez" />
+          </div>
+          <div class="field">
+            <label>Contraseña</label>
+            <input type="password" placeholder="••••••" />
+          </div>
+          <div class="field">
+            <label>Rol</label>
+            <select>
+              <option>Administrador</option>
+              <option>Operador</option>
+              <option>Invitado</option>
+            </select>
+          </div>
+          <div class="grid" style="grid-template-columns:1fr 1fr">
+            <a class="btn" href="#">Cancelar</a>
+            <a class="btn primary" href="#">Crear</a>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== INFORMACIÓN ===== -->
+    <section class="screen screen--info">
+      <div class="card panel">
+        <header>
+          <strong>Información</strong>
+          <span class="badge">Sólo visual</span>
+        </header>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div>Modelo: <strong>ESP32‑WROOM</strong></div>
+          <div>MAC: <strong>24:6F:28:AA:BB:CC</strong></div>
+          <div>IP Local: <strong>192.168.1.72</strong></div>
+          <div>Firmware: <strong>v0.1.0</strong></div>
+          <div>Zona: <strong>Patio trasero</strong></div>
+          <div>Almacenamiento: <strong>56% usado</strong></div>
+        </div>
+        <div class="card" style="margin-top:10px">
+          <strong>Acerca del sistema</strong>
+          <p style="color:var(--muted);margin:.4rem 0 0">Este mockup HTML/CSS está pensado para móvil (100%). Navega con las pestañas inferiores.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Tabs -->
+    <nav class="tabs" aria-label="Navegación">
+      <a class="tab" href="#inicio"><div class="ico">🏠</div><div>Inicio</div></a>
+      <a class="tab" href="#alertas"><div class="ico">🚨</div><div>Alertas</div></a>
+      <a class="tab" href="#config"><div class="ico">⚙️</div><div>Config</div></a>
+      <a class="tab" href="#usuario"><div class="ico">👤</div><div>Usuario</div></a>
+      <a class="tab" href="#info"><div class="ico">ℹ️</div><div>Info</div></a>
+    </nav>
+  </section>
+
+  <script>
+    // realzar tab activa según hash
+    function setActive(){
+      const hash = location.hash || '#inicio';
+      document.querySelectorAll('.tab').forEach(t=>{
+        t.classList.toggle('active', t.getAttribute('href')===hash);
+      });
+    }
+    addEventListener('hashchange', setActive);
+    setActive();
+  </script>
+</body>
+</html>
