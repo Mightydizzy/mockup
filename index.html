@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ESP32 | App (Mockup Mobile)</title>
   <style>
+    /* ===== Auth Overlay ===== */
+    .auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);
+      backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;
+      z-index:9999}
+    .auth-card{width:94%;max-width:380px;background:var(--panel);border:1px solid var(--border);
+      border-radius:16px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+    .auth-card h2{margin:0 0 8px}
+    .auth-actions{display:flex;gap:8px;margin-top:10px}
+    .app.locked .screen{pointer-events:none;filter:blur(2px)}
+
     :root{
       --bg:#0b1220;          /* slate-950 */
       --panel:#0f172a;       /* slate-900 */
@@ -102,6 +112,25 @@
         <a class="btn" href="#info">ℹ️</a>
       </div>
     </header>
+
+        <!-- Overlay de autenticación -->
+    <div id="auth" class="auth-overlay hide" aria-modal="true" role="dialog">
+      <div class="auth-card">
+        <h2>Iniciar sesión</h2>
+        <p style="color:var(--muted);margin:.4rem 0 1rem">
+          Acceso requerido para usar la app. Demo: <b>admin</b> / <b>12345</b>
+        </p>
+        <div class="grid">
+          <input id="auth-user" type="text" placeholder="Usuario" />
+          <input id="auth-pass" type="password" placeholder="Contraseña" />
+        </div>
+        <div class="auth-actions">
+          <button class="btn primary" id="auth-login">Entrar</button>
+          <button class="btn" id="auth-cancel">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
 
     <!-- ===== INICIO ===== -->
     <main class="screen screen--inicio">
@@ -321,15 +350,64 @@
   </section>
 
   <script>
-    // realzar tab activa según hash
-    function setActive(){
+    const AUTH_KEY = 'esp32_auth_ok';
+    const PUBLIC_HASHES = ['#login']; // si luego agregas una pantalla de login real
+    const overlay = document.getElementById('auth');
+    const app = document.querySelector('.app');
+
+    function isAuth(){ return localStorage.getItem(AUTH_KEY) === '1'; }
+    function showOverlay(){ overlay.classList.remove('hide'); app.classList.add('locked'); }
+    function hideOverlay(){ overlay.classList.add('hide'); app.classList.remove('locked'); }
+
+    // Tabs activas (igual que antes)
+    function setActiveTab(){
       const hash = location.hash || '#inicio';
       document.querySelectorAll('.tab').forEach(t=>{
         t.classList.toggle('active', t.getAttribute('href')===hash);
       });
     }
-    addEventListener('hashchange', setActive);
-    setActive();
+
+    // Guardia de rutas: bloquea interacción o redirige hasta que haya sesión
+    function guard(){
+      const hash = location.hash || '#inicio';
+      if (!isAuth() && !PUBLIC_HASHES.includes(hash)) {
+        // Opción A: bloquear interacción con overlay (se queda en la vista actual)
+        showOverlay();
+        // Opción B (si prefieres redirigir): descomenta la línea siguiente:
+        // location.hash = '#usuario'; // o '#login' si tienes una pantalla de login
+      } else {
+        hideOverlay();
+      }
+      setActiveTab();
+    }
+
+    // Eventos UI overlay
+    document.getElementById('auth-login').addEventListener('click', ()=>{
+      const u = document.getElementById('auth-user').value.trim();
+      const p = document.getElementById('auth-pass').value.trim();
+      if (u === 'admin' && p === '12345') {
+        localStorage.setItem(AUTH_KEY, '1');
+        hideOverlay();
+        guard(); // re-evaluar navegación
+      } else {
+        alert('Credenciales inválidas (demo: admin / 12345)');
+      }
+    });
+    document.getElementById('auth-cancel').addEventListener('click', ()=>{ showOverlay(); });
+
+    // Logout (opcional)
+    const btnLogout = document.getElementById('auth-logout');
+    if (btnLogout) {
+      btnLogout.addEventListener('click', ()=>{
+        localStorage.removeItem(AUTH_KEY);
+        guard();
+      });
+    }
+
+    // Enforzar guard al cargar y al cambiar de pestaña
+    addEventListener('hashchange', guard);
+    guard();
+
   </script>
 </body>
 </html>
